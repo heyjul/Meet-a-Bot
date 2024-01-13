@@ -1,0 +1,21 @@
+pub mod activity;
+pub mod attachment;
+pub mod card_action;
+pub mod channel_account;
+pub mod conversation_account;
+pub mod conversation_reference;
+pub mod message_reaction;
+pub mod semantic_action;
+pub mod suggested_actions;
+pub mod text_highlight;
+
+pub use crate::models::activity::Activity;
+pub use crate::models::attachment::Attachment;
+pub use crate::models::card_action::CardAction;
+pub use crate::models::channel_account::ChannelAccount;
+pub use crate::models::conversation_account::ConversationAccount;
+pub use crate::models::conversation_reference::ConversationReference;
+pub use crate::models::message_reaction::MessageReaction;
+pub use crate::models::semantic_action::SemanticAction;
+pub use crate::models::suggested_actions::SuggestedActions;
+pub use crate::models::text_highlight::TextHighlight;
