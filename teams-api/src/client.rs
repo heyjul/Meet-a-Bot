@@ -5,6 +5,7 @@ use std::{
 
 use reqwest::{header, Method, RequestBuilder};
 use serde::Deserialize;
+use tokio::sync::Mutex;
 
 use crate::models::{requests::*, responses::*, Activity};
 
@@ -13,7 +14,7 @@ pub struct TeamsBotClient {
     client: reqwest::Client,
     client_id: String,
     client_secret: String,
-    token: Option<Arc<Token>>,
+    token: Arc<Mutex<Option<Token>>>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -40,11 +41,12 @@ impl TeamsBotClient {
             client,
             client_id: client_id.to_owned(),
             client_secret: client_secret.to_owned(),
-            token: None,
+            token: Arc::new(Mutex::new(None)),
         }
     }
 
-    async fn fetch_token(&mut self) -> Token {
+    #[tracing::instrument(skip(self))]
+    async fn fetch_token(&self) -> Token {
         let data = format!("grant_type=client_credentials&client_id={client_id}&client_secret={client_secret}&scope=https%3A%2F%2Fapi.botframework.com%2F.default", client_id = self.client_id, client_secret = self.client_secret);
 
         let result = self
@@ -64,18 +66,14 @@ impl TeamsBotClient {
         result.json().await.expect("Failed to deserialize token")
     }
 
-    async fn create_request(
-        &mut self,
-        method: Method,
-        base_url: &str,
-        url: &str,
-    ) -> RequestBuilder {
-        if let Some(ref token) = self.token {
-            if !token.is_valid() {
-                self.token = Some(Arc::new(self.fetch_token().await));
-            }
-        } else {
-            self.token = Some(Arc::new(self.fetch_token().await));
+    #[tracing::instrument(skip(self))]
+    async fn create_request(&self, method: Method, base_url: &str, url: &str) -> RequestBuilder {
+        let mut token = self.token.lock().await;
+
+        match *token {
+            Some(ref t) if !t.is_valid() => *token = Some(self.fetch_token().await),
+            None => *token = Some(self.fetch_token().await),
+            _ => (),
         }
 
         self.client
@@ -83,12 +81,13 @@ impl TeamsBotClient {
                 method,
                 format!("{base_url}{url}", base_url = base_url.trim_end_matches('/')),
             )
-            .bearer_auth(&self.token.as_ref().unwrap().access_token)
+            .bearer_auth(&token.as_ref().unwrap().access_token)
     }
 
     /// Creates a new conversation.
+    #[tracing::instrument(skip(self, body))]
     pub async fn create_conversation(
-        &mut self,
+        &self,
         base_url: &str,
         body: &ConversationParameters,
     ) -> ConversationResourceResponse {
@@ -106,8 +105,9 @@ impl TeamsBotClient {
     }
 
     /// Sends an activity (message) to the specified conversation. The activity will be appended to the end of the conversation according to the timestamp or semantics of the channel. To reply to a specific message within the conversation, use Reply to Activity instead.
+    #[tracing::instrument(skip(self, body))]
     pub async fn send_to_conversation(
-        &mut self,
+        &self,
         base_url: &str,
         conversation_id: &str,
         body: &Activity,

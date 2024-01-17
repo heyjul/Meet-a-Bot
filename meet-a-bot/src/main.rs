@@ -13,6 +13,12 @@ struct AppState {
 
 #[tokio::main]
 async fn main() {
+    let subscriber = tracing_subscriber::fmt()
+        .compact()
+        .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to register tracing");
+
     let port_key = "FUNCTIONS_CUSTOMHANDLER_PORT";
     let port: u16 = match env::var(port_key) {
         Ok(val) => val.parse().expect("Custom Handler port is not a number!"),
@@ -39,7 +45,8 @@ async fn main() {
         .unwrap();
 }
 
-async fn handle(State(AppState { mut client }): State<AppState>, Json(activity): Json<Activity>) {
+#[tracing::instrument(skip(client, activity))]
+async fn handle(State(AppState { client }): State<AppState>, Json(activity): Json<Activity>) {
     let base_url = activity
         .service_url
         .as_deref()
