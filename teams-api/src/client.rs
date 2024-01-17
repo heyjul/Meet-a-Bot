@@ -31,7 +31,7 @@ impl Token {
         elapsed
             < Duration::from_secs(self.expires_in as u64)
                 .checked_sub(Duration::from_secs(60))
-                .unwrap_or(Duration::default())
+                .unwrap_or_default()
     }
 }
 
