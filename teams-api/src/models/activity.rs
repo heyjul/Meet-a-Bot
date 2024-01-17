@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::*;
 
 /// Defines a message that is exchanged between bot and user.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Activity {
     ///	The action to apply or that was applied. Use the type property to determine context for the action. For example, if type is contactRelationUpdate, the value of the action property would be add if the user added your bot to their contacts list, or remove if they removed your bot from their contacts list.

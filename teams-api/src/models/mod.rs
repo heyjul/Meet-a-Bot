@@ -5,6 +5,8 @@ pub mod channel_account;
 pub mod conversation_account;
 pub mod conversation_reference;
 pub mod message_reaction;
+pub mod requests;
+pub mod responses;
 pub mod semantic_action;
 pub mod suggested_actions;
 pub mod text_highlight;
