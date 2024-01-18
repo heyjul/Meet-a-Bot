@@ -67,7 +67,12 @@ impl TeamsBotClient {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn create_request(&self, method: Method, base_url: &str, url: &str) -> RequestBuilder {
+    async fn create_request(
+        &self,
+        method: Method,
+        base_url: Option<&str>,
+        url: &str,
+    ) -> RequestBuilder {
         let mut token = self.token.lock().await;
 
         match *token {
@@ -79,7 +84,12 @@ impl TeamsBotClient {
         self.client
             .request(
                 method,
-                format!("{base_url}{url}", base_url = base_url.trim_end_matches('/')),
+                format!(
+                    "{base_url}{url}",
+                    base_url = base_url
+                        .map(|x| x.trim_end_matches('/'))
+                        .unwrap_or("https://smba.trafficmanager.net/teams")
+                ),
             )
             .bearer_auth(&token.as_ref().unwrap().access_token)
     }
@@ -88,7 +98,7 @@ impl TeamsBotClient {
     #[tracing::instrument(skip(self, body))]
     pub async fn create_conversation(
         &self,
-        base_url: &str,
+        base_url: Option<&str>,
         body: &ConversationParameters,
     ) -> ConversationResourceResponse {
         let result = self
@@ -108,7 +118,7 @@ impl TeamsBotClient {
     #[tracing::instrument(skip(self, body))]
     pub async fn send_to_conversation(
         &self,
-        base_url: &str,
+        base_url: Option<&str>,
         conversation_id: &str,
         body: &Activity,
     ) -> ResourceResponse {

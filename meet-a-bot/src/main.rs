@@ -47,14 +47,9 @@ async fn main() {
 
 #[tracing::instrument(skip(client, activity))]
 async fn handle(State(AppState { client }): State<AppState>, Json(activity): Json<Activity>) {
-    let base_url = activity
-        .service_url
-        .as_deref()
-        .unwrap_or("https://smba.trafficmanager.net/teams/");
-
     client
         .send_to_conversation(
-            base_url,
+            activity.service_url.as_deref(),
             activity
                 .conversation
                 .as_ref()
