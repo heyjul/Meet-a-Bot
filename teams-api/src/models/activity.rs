@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -212,4 +214,24 @@ pub enum Type {
     Trace,
     #[serde(rename = "handoff")]
     Handoff,
+}
+
+impl Activity {
+    pub fn create_response(&self) -> (Option<&str>, Self) {
+        (
+            self.service_url.as_deref(),
+            Activity {
+                from: self.recipient.clone(),
+                conversation: self.conversation.clone(),
+                recipient: self.from.clone(),
+                ..Default::default()
+            },
+        )
+    }
+}
+
+impl Display for Activity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", serde_json::to_string_pretty(self).unwrap())
+    }
 }

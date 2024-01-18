@@ -45,26 +45,43 @@ async fn main() {
         .unwrap();
 }
 
-#[tracing::instrument(skip(client, activity))]
+#[tracing::instrument(skip(client, activity), fields(activity = %activity))]
 async fn handle(State(AppState { client }): State<AppState>, Json(activity): Json<Activity>) {
-    client
-        .send_to_conversation(
-            activity.service_url.as_deref(),
-            activity
-                .conversation
-                .as_ref()
-                .unwrap()
-                .id
-                .as_deref()
-                .unwrap(),
-            &Activity {
-                r#type: Some(Type::Message),
-                text: Some("Salut !".to_owned()),
-                from: activity.recipient.clone(),
-                conversation: activity.conversation.clone(),
-                recipient: activity.from.clone(),
-                ..Default::default()
-            },
-        )
-        .await;
+    if let Some(Type::ConversationUpdate) = activity.r#type {
+        send_greetings(&client, &activity).await;
+    }
+}
+
+#[tracing::instrument(skip_all)]
+async fn send_greetings(client: &TeamsBotClient, activity: &Activity) {
+    let members_added = &activity.members_added;
+    let recipient = &activity.recipient;
+
+    match (members_added, recipient) {
+        (Some(ref members_added), Some(ref recipient)) => {
+            if let Some(ref id) = recipient.id {
+                if !members_added
+                    .iter()
+                    .any(|x| x.id.as_deref().map_or(false, |x| x == id))
+                {
+                    return;
+                }
+            } else {
+                return;
+            }
+        }
+        _ => return,
+    }
+
+    let (base_url, mut response) = activity.create_response();
+    response.r#type = Some(Type::Message);
+    response.text = Some("Salut".to_owned());
+
+    if let Some(ref conversation) = activity.conversation {
+        if let Some(ref conversation_id) = conversation.id {
+            client
+                .send_to_conversation(base_url, conversation_id, &response)
+                .await;
+        }
+    }
 }
