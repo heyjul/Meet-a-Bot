@@ -85,3 +85,58 @@ async fn send_greetings(client: &TeamsBotClient, activity: &Activity) {
         }
     }
 }
+
+/*
+
+{
+    "type": "AdaptiveCard",
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "version": "1.5",
+    "body": [
+        {
+            "type": "TextBlock",
+            "text": "Spank me daddy !",
+            "wrap": true,
+            "style": "heading",
+            "color": "Accent"
+        },
+        {
+            "type": "Input.Text",
+            "placeholder": "Was I a good boy ?",
+            "id": "comment",
+            "isMultiline": true
+        },
+        {
+            "type": "ActionSet",
+            "actions": [
+                {
+                    "type": "Action.Submit",
+                    "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
+                    "id": "star1"
+                },
+                {
+                    "type": "Action.Submit",
+                    "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
+                    "id": "star2"
+                },
+                {
+                    "type": "Action.Submit",
+                    "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
+                    "id": "star3"
+                },
+                {
+                    "type": "Action.Submit",
+                    "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
+                    "id": "star4"
+                },
+                {
+                    "type": "Action.Submit",
+                    "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
+                    "id": "star5"
+                }
+            ]
+        }
+    ]
+}
+
+*/
