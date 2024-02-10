@@ -232,6 +232,6 @@ impl Activity {
 
 impl Display for Activity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", serde_json::to_string_pretty(self).unwrap())
+        write!(f, "{}", serde_json::to_string(self).unwrap())
     }
 }

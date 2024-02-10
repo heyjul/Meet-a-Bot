@@ -14,7 +14,7 @@ struct AppState {
 #[tokio::main]
 async fn main() {
     let subscriber = tracing_subscriber::fmt()
-        .compact()
+        .pretty()
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Failed to register tracing");
