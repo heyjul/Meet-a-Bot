@@ -14,7 +14,7 @@
   },
   "customHandler": {
     "description": {
-      "defaultExecutablePath": "meet-a-bot",
+      "defaultExecutablePath": "executable/meet-a-bot",
       "workingDirectory": "",
       "arguments": []
     },

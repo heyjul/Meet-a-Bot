@@ -17,6 +17,7 @@ async fn main() {
         .pretty()
         .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
         .finish();
+
     tracing::subscriber::set_global_default(subscriber).expect("Failed to register tracing");
 
     let port_key = "FUNCTIONS_CUSTOMHANDLER_PORT";
