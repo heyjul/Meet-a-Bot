@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::*;
 
 /// Defines a particular point in a conversation.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConversationReference {
     /// ID that uniquely identifies the activity that this object references.

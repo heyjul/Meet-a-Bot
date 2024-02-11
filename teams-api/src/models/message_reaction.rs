@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Defines a reaction to a message.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct MessageReaction {
     /// Type of reaction. Either like or plusOne.
     #[serde(skip_serializing_if = "Option::is_none")]

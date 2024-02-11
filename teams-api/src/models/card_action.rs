@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Defines a clickable action with a button.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CardAction {
     /// Channel-specific data associated with this action.

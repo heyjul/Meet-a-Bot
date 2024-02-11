@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 /// Defines a bot or user account on the channel.
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChannelAccount {
     /// This account's object ID within Microsoft Entra ID.
