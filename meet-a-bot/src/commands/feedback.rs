@@ -58,47 +58,94 @@ pub async fn send_feedback_card(client: &TeamsBotClient, pool: &SqlitePool, acti
                     "isMultiline": true
                 },
                 {
-                    "type": "ActionSet",
-                    "actions": [
+                    "type": "ColumnSet",
+                    "style": "emphasis",
+                    "horizontalAlignment": "Right",
+                    "columns": [
                         {
-                            "type": "Action.Submit",
-                            "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
-                            "id": "star1",
-                            "data": {
-                                "rating": 1
-                            }
+                            "type": "Column",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": FULL_STAR,
+                                    "id": "star1",
+                                    "size": "Small",
+                                    "selectAction": {
+                                        "type": "Action.Submit",
+                                        "data": {
+                                            "rating": 1
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                       {
+                            "type": "Column",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": FULL_STAR,
+                                    "id": "star2",
+                                    "size": "Small",
+                                    "selectAction": {
+                                        "type": "Action.Submit",
+                                        "data": {
+                                            "rating": 2
+                                        }
+                                    }
+                                }
+                            ]
                         },
                         {
-                            "type": "Action.Submit",
-                            "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
-                            "id": "star2",
-                            "data": {
-                                "rating": 2
-                            }
+                            "type": "Column",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": FULL_STAR,
+                                    "id": "star3",
+                                    "size": "Small",
+                                    "selectAction": {
+                                        "type": "Action.Submit",
+                                        "data": {
+                                            "rating": 3
+                                        }
+                                    }
+                                }
+                            ]
                         },
                         {
-                            "type": "Action.Submit",
-                            "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
-                            "id": "star3",
-                            "data": {
-                                "rating": 3
-                            }
+                            "type": "Column",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": FULL_STAR,
+                                    "id": "star4",
+                                    "size": "Small",
+                                    "selectAction": {
+                                        "type": "Action.Submit",
+                                        "data": {
+                                            "rating": 4
+                                        }
+                                    }
+                                }
+                            ]
                         },
                         {
-                            "type": "Action.Submit",
-                            "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
-                            "id": "star4",
-                            "data": {
-                                "rating": 4
-                            }
-                        },
-                        {
-                            "type": "Action.Submit",
-                            "iconUrl": "https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fpluspng.com%2Fimg-png%2Fstar-png-star-vector-png-transparent-image-2000.png&f=1&nofb=1&ipt=24e63d9cad1555be8ff2f18a33a1c1cefbe8d77a137ded45ad3125344c92aef0&ipo=images",
-                            "id": "star5",
-                            "data": {
-                                "rating": 5
-                            }
+                            "type": "Column",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": FULL_STAR,
+                                    "id": "star5",
+                                    "size": "Small",
+                                    "selectAction": {
+                                        "type": "Action.Submit",
+                                        "data": {
+                                            "rating": 5
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     ]
                 }
