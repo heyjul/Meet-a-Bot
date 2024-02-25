@@ -2,13 +2,14 @@ use std::env;
 
 use axum::{routing::post, Router};
 use meet_a_bot::{routes::messages, state::AppState};
+use sqlx::SqlitePool;
 use teams_api::client::TeamsBotClient;
 
 #[tokio::main]
 async fn main() {
     let subscriber = tracing_subscriber::fmt()
         .pretty()
-        .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
+        // .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).expect("Failed to register tracing");
@@ -25,10 +26,12 @@ async fn main() {
 
     let client_id = env::var("TEAMS_CLIENT_ID").expect("Missing TEAMS_CLIENT_ID");
     let client_secret = env::var("TEAMS_CLIENT_SECRET").expect("Missing TEAMS_CLIENT_SECRET");
+    let client = TeamsBotClient::new(reqwest::Client::new(), &client_id, &client_secret);
 
-    let state = AppState {
-        client: TeamsBotClient::new(reqwest::Client::new(), &client_id, &client_secret),
-    };
+    let pool = SqlitePool::connect_lazy(&env::var("DATABASE_URL").expect("Missing DATABASE_URL"))
+        .expect("Failed to connect to the database");
+
+    let state = AppState { client, pool };
 
     let app = Router::new()
         .route("/api/messages", post(messages::handle))

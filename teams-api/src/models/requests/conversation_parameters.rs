@@ -3,7 +3,7 @@ use serde::Serialize;
 use crate::models::*;
 
 /// Defines parameters for creating a new conversation.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ConversationParameters {
     /// The initial message to send to the conversation when it's created.

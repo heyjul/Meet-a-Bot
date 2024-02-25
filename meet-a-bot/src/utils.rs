@@ -1,6 +1,8 @@
 use teams_api::models::Activity;
 
-pub fn parse_command(activity: &Activity) -> Option<&str> {
+use crate::commands::Commands;
+
+pub fn parse_command(activity: &Activity) -> Option<Commands> {
     match activity.recipient.as_ref().and_then(|x| x.name.as_deref()) {
         Some(name) => activity
             .text
@@ -9,7 +11,8 @@ pub fn parse_command(activity: &Activity) -> Option<&str> {
                 text.strip_prefix(&format!("<at>{name}</at>"))
                     .or(Some(text))
             })
-            .and_then(|text| text.split_ascii_whitespace().next()),
+            .and_then(|text| text.split_ascii_whitespace().next())
+            .and_then(|command| Commands::try_from(command).ok()),
         None => None,
     }
 }
@@ -25,14 +28,18 @@ mod tests {
     #[case(None, Some("help"), None)]
     #[case(Some("Foo"), None, None)]
     #[case(Some("Foo"), Some("<at>Foo</at>"), None)]
-    #[case(Some("Foo"), Some("bar"), Some("bar"))]
-    #[case(Some("Foo"), Some("<at>Foo</at>bar"), Some("bar"))]
-    #[case(Some("Foo"), Some("<at>Foo</at> bar"), Some("bar"))]
-    #[case(Some("Foo"), Some("<at>Foo</at> bar baz"), Some("bar"))]
+    #[case(Some("Foo"), Some("feedback"), Some(Commands::Feedback))]
+    #[case(Some("Foo"), Some("<at>Foo</at>feedback"), Some(Commands::Feedback))]
+    #[case(Some("Foo"), Some("<at>Foo</at> feedback"), Some(Commands::Feedback))]
+    #[case(
+        Some("Foo"),
+        Some("<at>Foo</at> feedback baz"),
+        Some(Commands::Feedback)
+    )]
     fn test_parse_command(
         #[case] name: Option<&str>,
         #[case] text: Option<&str>,
-        #[case] expected: Option<&str>,
+        #[case] expected: Option<Commands>,
     ) {
         // Arrange
         let activity = Activity {

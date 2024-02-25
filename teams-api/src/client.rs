@@ -6,6 +6,7 @@ use std::{
 use reqwest::{header, Method, RequestBuilder};
 use serde::Deserialize;
 use tokio::sync::Mutex;
+use tracing::info;
 
 use crate::models::{requests::*, responses::*, Activity};
 
@@ -111,7 +112,8 @@ impl TeamsBotClient {
 
         assert!(result.status().is_success());
 
-        result.json().await.expect("Failed to deserialize response")
+        let json: serde_json::Value = result.json().await.expect("Failed to deserialize response");
+        serde_json::from_value(json).unwrap()
     }
 
     /// Sends an activity (message) to the specified conversation. The activity will be appended to the end of the conversation according to the timestamp or semantics of the channel. To reply to a specific message within the conversation, use Reply to Activity instead.
@@ -136,6 +138,35 @@ impl TeamsBotClient {
 
         assert!(result.status().is_success());
 
-        result.json().await.expect("Failed to deserialize response")
+        let json: serde_json::Value = result.json().await.expect("Failed to deserialize response");
+        serde_json::from_value(json).unwrap()
+    }
+
+    /// Some channels allow you to edit an existing activity to reflect the new state of a bot conversation. For example, you might remove buttons from a message in the conversation after the user has clicked one of the buttons. If successful, this operation updates the specified activity within the specified conversation.
+    #[tracing::instrument(skip(self, body))]
+    pub async fn update_activity(
+        &self,
+        base_url: Option<&str>,
+        conversation_id: &str,
+        activity_id: &str,
+        body: &Activity,
+    ) -> ResourceResponse {
+        let result = self
+            .create_request(
+                Method::PUT,
+                base_url,
+                &format!("/v3/conversations/{conversation_id}/activities/{activity_id}"),
+            )
+            .await
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to send request");
+
+        // assert!(result.status().is_success());
+
+        let json: serde_json::Value = result.json().await.expect("Failed to deserialize response");
+        info!("{}", json);
+        serde_json::from_value(json).unwrap()
     }
 }

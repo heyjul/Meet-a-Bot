@@ -222,7 +222,7 @@ impl Activity {
             self.service_url.as_deref(),
             Activity {
                 from: self.recipient.clone(),
-                conversation: self.conversation.clone(),
+                // conversation: self.conversation.clone(),
                 recipient: self.from.clone(),
                 ..Default::default()
             },
