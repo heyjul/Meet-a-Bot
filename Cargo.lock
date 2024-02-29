@@ -1156,6 +1156,7 @@ dependencies = [
  "serde_json",
  "sqlx",
  "teams_api",
+ "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -2225,6 +2226,7 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
+ "thiserror",
  "tokio",
  "tracing",
 ]

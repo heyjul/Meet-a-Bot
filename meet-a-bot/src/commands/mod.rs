@@ -1,3 +1,7 @@
+pub mod feedback;
+
+use crate::error::{Error, Result};
+
 use teams_api::{
     client::TeamsBotClient,
     models::{
@@ -5,20 +9,18 @@ use teams_api::{
     },
 };
 
-pub mod feedback;
-
 #[derive(Debug, PartialEq)]
 pub enum Commands {
     Feedback,
 }
 
 impl TryFrom<&str> for Commands {
-    type Error = ();
+    type Error = Error;
 
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
+    fn try_from(value: &str) -> Result<Commands> {
         match value.trim() {
             "feedback" => Ok(Self::Feedback),
-            _ => Err(()),
+            _ => Err(Error::UnknownCommand(value.to_owned())),
         }
     }
 }
@@ -32,7 +34,11 @@ impl ToString for Commands {
 }
 
 #[tracing::instrument(skip_all)]
-pub async fn send_message(client: &TeamsBotClient, activity: &Activity, message: &str) {
+pub async fn send_message(
+    client: &TeamsBotClient,
+    activity: &Activity,
+    message: &str,
+) -> Result<()> {
     let (base_url, mut response) = activity.create_response();
     response.r#type = Some(Type::Message);
     response.text = Some(message.to_owned());
@@ -41,9 +47,11 @@ pub async fn send_message(client: &TeamsBotClient, activity: &Activity, message:
         if let Some(ref conversation_id) = conversation.id {
             client
                 .send_to_conversation(base_url, conversation_id, &response)
-                .await;
+                .await?;
         }
     }
+
+    Ok(())
 }
 
 #[tracing::instrument(skip_all)]
@@ -51,7 +59,7 @@ pub async fn send_adaptive_card(
     client: &TeamsBotClient,
     activity: &Activity,
     adaptive_card: &serde_json::Value,
-) -> Option<ResourceResponse> {
+) -> Result<Option<ResourceResponse>> {
     let (base_url, mut response) = activity.create_response();
     response.r#type = Some(Type::Message);
     response.attachments = Some(vec![Attachment {
@@ -64,13 +72,13 @@ pub async fn send_adaptive_card(
 
     if let Some(ref conversation) = activity.conversation {
         if let Some(ref conversation_id) = conversation.id {
-            return Some(
-                client
-                    .send_to_conversation(base_url, conversation_id, &response)
-                    .await,
-            );
+            let result = client
+                .send_to_conversation(base_url, conversation_id, &response)
+                .await?;
+
+            return Ok(Some(result));
         }
     }
 
-    None
+    Ok(None)
 }

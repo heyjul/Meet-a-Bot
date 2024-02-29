@@ -16,6 +16,7 @@ tracing-subscriber = "0.3.18"
 serde_json = "1.0.113"
 serde = { version = "1.0.196", features = ["derive"] }
 sqlx = { version = "0.7.3", features = ["sqlite", "runtime-tokio", "macros"] }
+thiserror = "1.0.57"
 
 [dev-dependencies]
 rstest = "0.18.2"

@@ -10,6 +10,7 @@ use teams_api::{
 
 use crate::{
     database::queries::{self, feedback::FeedbackMeta},
+    error::{Error, Result},
     models,
 };
 
@@ -24,19 +25,23 @@ struct ActivityFrom<'a> {
     name: &'a str,
 }
 
-fn try_extract_from(activity: &Activity) -> Result<ActivityFrom, ()> {
-    match activity.from {
-        Some(ChannelAccount {
-            id: Some(ref id),
-            name: Some(ref name),
-            aad_object_id: _,
-            role: _,
-        }) => Ok(ActivityFrom { id, name }),
-        _ => Err(()),
-    }
+fn try_extract_from(activity: &Activity) -> Result<ActivityFrom> {
+    let Some(id) = activity.from.as_ref().and_then(|x| x.id.as_ref()) else {
+        return Err(Error::MissingValue("id"));
+    };
+
+    let Some(name) = activity.from.as_ref().and_then(|x| x.name.as_ref()) else {
+        return Err(Error::MissingValue("name"));
+    };
+
+    Ok(ActivityFrom { id, name })
 }
 
-pub async fn send_feedback_card(client: &TeamsBotClient, pool: &SqlitePool, activity: &Activity) {
+pub async fn send_feedback_card(
+    client: &TeamsBotClient,
+    pool: &SqlitePool,
+    activity: &Activity,
+) -> Result<()> {
     let response = send_adaptive_card(
         client,
         activity,
@@ -150,24 +155,23 @@ pub async fn send_feedback_card(client: &TeamsBotClient, pool: &SqlitePool, acti
                     ]
                 }
             ]
-        })
-    ).await;
+        }),
+    )
+    .await?;
 
-    let ActivityFrom { id: owner_id, name } =
-        try_extract_from(activity).expect("Failed to fetch from");
+    let ActivityFrom { id: owner_id, name } = try_extract_from(activity)?;
 
     let card_id = response
         .as_ref()
         .and_then(|x| x.id.as_ref())
-        .expect("response.id expected");
+        .ok_or(Error::MissingValue("id"))?;
 
-    let mut conn = pool
-        .acquire()
-        .await
-        .expect("Failed to acquire database connection");
+    let mut conn = pool.acquire().await?;
 
-    queries::user::create_user(owner_id, name, &mut conn).await;
-    queries::feedback::create_feedback(owner_id, card_id, &mut conn).await;
+    queries::user::create_user(owner_id, name, &mut conn).await?;
+    queries::feedback::create_feedback(owner_id, card_id, &mut conn).await?;
+
+    Ok(())
 }
 
 pub async fn handle_feedback_entry(
@@ -175,30 +179,27 @@ pub async fn handle_feedback_entry(
     pool: &SqlitePool,
     activity: &Activity,
     feedback: &models::adaptive_card_response::Feedback,
-) {
+) -> Result<()> {
     let card_id = activity
         .reply_to_id
         .as_ref()
-        .expect("Reply to id should be set");
+        .ok_or(Error::MissingValue("reply_to_id"))?;
 
     let user_id = activity
         .from
         .as_ref()
         .and_then(|x| x.id.as_ref())
-        .expect("from.id expected");
+        .ok_or(Error::MissingValue("id"))?;
 
     let (base_url, mut response) = activity.create_response();
 
-    let mut conn = pool
-        .acquire()
-        .await
-        .expect("Failed to acquire database connection");
+    let mut conn = pool.acquire().await?;
 
     let FeedbackMeta {
         conversation_id,
         owner_id,
         report_id,
-    } = queries::feedback::get_feedback_by_id(card_id, &mut conn).await;
+    } = queries::feedback::get_feedback_by_id(card_id, &mut conn).await?;
 
     let conversation_id = get_or_create_conversation(
         client,
@@ -208,7 +209,7 @@ pub async fn handle_feedback_entry(
         &owner_id,
         &mut conn,
     )
-    .await;
+    .await?;
 
     queries::feedback::create_or_update_feedback_entry(
         card_id,
@@ -217,9 +218,9 @@ pub async fn handle_feedback_entry(
         feedback.comment.as_deref(),
         &mut conn,
     )
-    .await;
+    .await?;
 
-    let feedbacks = queries::feedback::get_feedbacks_by_id(card_id, &mut conn).await;
+    let feedbacks = queries::feedback::get_feedbacks_by_id(card_id, &mut conn).await?;
 
     let content = get_feedback_report_adaptive_card(feedbacks);
 
@@ -237,21 +238,23 @@ pub async fn handle_feedback_entry(
         Some(report_id) => {
             client
                 .update_activity(base_url, &conversation_id, &report_id, &response)
-                .await;
+                .await?;
         }
         None => {
             let response = client
                 .send_to_conversation(base_url, &conversation_id, &response)
-                .await;
+                .await?;
 
             queries::feedback::add_report(
                 card_id,
-                &response.id.expect("Id sould be set"),
+                &response.id.ok_or(Error::MissingValue("id"))?,
                 &mut conn,
             )
-            .await;
+            .await?;
         }
     }
+
+    Ok(())
 }
 
 fn get_feedback_report_adaptive_card(
@@ -319,14 +322,14 @@ async fn get_or_create_conversation(
     activity: &Activity,
     user_id: &str,
     conn: &mut PoolConnection<Sqlite>,
-) -> String {
+) -> Result<String> {
     match conversation_id {
-        Some(conversation_id) => conversation_id,
+        Some(conversation_id) => Ok(conversation_id),
         None => {
-            let conversation_id = create_conversation(client, base_url, activity, user_id).await;
-            queries::user::update_conversation(user_id, &conversation_id, conn).await;
+            let conversation_id = create_conversation(client, base_url, activity, user_id).await?;
+            queries::user::update_conversation(user_id, &conversation_id, conn).await?;
 
-            conversation_id
+            Ok(conversation_id)
         }
     }
 }
@@ -336,7 +339,7 @@ async fn create_conversation(
     base_url: Option<&str>,
     activity: &Activity,
     user_id: &str,
-) -> String {
+) -> Result<String> {
     let conversation_response = client
         .create_conversation(
             base_url,
@@ -351,9 +354,11 @@ async fn create_conversation(
                 ..Default::default()
             },
         )
-        .await;
+        .await?;
 
-    conversation_response.id.expect("Missing conversation id")
+    let id = conversation_response.id.ok_or(Error::MissingValue("id"))?;
+
+    Ok(id)
 }
 
 #[derive(Clone, Debug, Serialize)]

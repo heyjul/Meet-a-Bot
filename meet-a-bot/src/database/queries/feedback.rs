@@ -1,31 +1,43 @@
 use sqlx::{pool::PoolConnection, Sqlite};
 
+use crate::error::Result;
+
 #[derive(Clone, Debug)]
 pub struct Feedback {
     pub comment: Option<String>,
     pub rating: i64,
 }
 
-pub async fn create_feedback(owner_id: &str, card_id: &str, conn: &mut PoolConnection<Sqlite>) {
+pub async fn create_feedback(
+    owner_id: &str,
+    card_id: &str,
+    conn: &mut PoolConnection<Sqlite>,
+) -> Result<()> {
     sqlx::query!(
         "INSERT INTO feedback (id, owner_id) VALUES (?, ?)",
         card_id,
         owner_id,
     )
     .execute(&mut **conn)
-    .await
-    .expect("Failed to execute query");
+    .await?;
+
+    Ok(())
 }
 
-pub async fn add_report(card_id: &str, report_id: &str, conn: &mut PoolConnection<Sqlite>) {
+pub async fn add_report(
+    card_id: &str,
+    report_id: &str,
+    conn: &mut PoolConnection<Sqlite>,
+) -> Result<()> {
     sqlx::query!(
         "UPDATE feedback SET report_id = ? WHERE id = ?",
         report_id,
         card_id
     )
     .execute(&mut **conn)
-    .await
-    .expect("Failed to execute query");
+    .await?;
+
+    Ok(())
 }
 
 pub async fn create_or_update_feedback_entry(
@@ -34,7 +46,7 @@ pub async fn create_or_update_feedback_entry(
     rating: i64,
     comment: Option<&str>,
     conn: &mut PoolConnection<Sqlite>,
-) {
+) -> Result<()> {
     sqlx::query!(
         "INSERT INTO feedback_entry (feedback_id, user_id, rating, comment) VALUES (?, ?, ?, ?) ON CONFLICT (feedback_id, user_id) DO UPDATE SET rating = ?, comment = ?",
         feedback_id,
@@ -45,22 +57,24 @@ pub async fn create_or_update_feedback_entry(
         comment,
     )
     .execute(&mut **conn)
-    .await
-    .expect("Failed to exectute query");
+    .await?;
+
+    Ok(())
 }
 
 pub async fn get_feedbacks_by_id(
     feedback_id: &str,
     conn: &mut PoolConnection<Sqlite>,
-) -> Vec<Feedback> {
-    sqlx::query_as!(
+) -> Result<Vec<Feedback>> {
+    let result = sqlx::query_as!(
         Feedback,
         "SELECT rating, comment FROM feedback_entry WHERE feedback_id = ?",
         feedback_id
     )
     .fetch_all(&mut **conn)
-    .await
-    .expect("Failed to exectute query")
+    .await?;
+
+    Ok(result)
 }
 
 pub struct FeedbackMeta {
@@ -69,8 +83,11 @@ pub struct FeedbackMeta {
     pub report_id: Option<String>,
 }
 
-pub async fn get_feedback_by_id(card_id: &str, conn: &mut PoolConnection<Sqlite>) -> FeedbackMeta {
-    sqlx::query_as!(
+pub async fn get_feedback_by_id(
+    card_id: &str,
+    conn: &mut PoolConnection<Sqlite>,
+) -> Result<FeedbackMeta> {
+    let result = sqlx::query_as!(
         FeedbackMeta,
         "SELECT 
             user.conversation_id,
@@ -84,6 +101,7 @@ pub async fn get_feedback_by_id(card_id: &str, conn: &mut PoolConnection<Sqlite>
         card_id
     )
     .fetch_one(&mut **conn)
-    .await
-    .expect("Failed to execute query")
+    .await?;
+
+    Ok(result)
 }

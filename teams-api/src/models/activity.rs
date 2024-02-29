@@ -1,5 +1,3 @@
-use std::fmt::Display;
-
 use serde::{Deserialize, Serialize};
 
 use super::*;
@@ -222,16 +220,9 @@ impl Activity {
             self.service_url.as_deref(),
             Activity {
                 from: self.recipient.clone(),
-                // conversation: self.conversation.clone(),
                 recipient: self.from.clone(),
                 ..Default::default()
             },
         )
-    }
-}
-
-impl Display for Activity {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", serde_json::to_string(self).unwrap())
     }
 }

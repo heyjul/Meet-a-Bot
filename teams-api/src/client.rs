@@ -6,9 +6,11 @@ use std::{
 use reqwest::{header, Method, RequestBuilder};
 use serde::Deserialize;
 use tokio::sync::Mutex;
-use tracing::info;
 
-use crate::models::{requests::*, responses::*, Activity};
+use crate::{
+    error::{Error, Result},
+    models::{requests::*, responses::*, Activity},
+};
 
 #[derive(Clone)]
 pub struct TeamsBotClient {
@@ -47,7 +49,7 @@ impl TeamsBotClient {
     }
 
     #[tracing::instrument(skip(self))]
-    async fn fetch_token(&self) -> Token {
+    async fn fetch_token(&self) -> Result<Token> {
         let data = format!("grant_type=client_credentials&client_id={client_id}&client_secret={client_secret}&scope=https%3A%2F%2Fapi.botframework.com%2F.default", client_id = self.client_id, client_secret = self.client_secret);
 
         let result = self
@@ -59,12 +61,12 @@ impl TeamsBotClient {
             )
             .body(data)
             .send()
-            .await
-            .expect("Failed to fetch bearer token");
+            .await?;
 
-        assert!(result.status().is_success());
-
-        result.json().await.expect("Failed to deserialize token")
+        match result.status().is_success() {
+            false => Err(Error::Teams(result.json().await?)),
+            true => Ok(result.json().await?),
+        }
     }
 
     #[tracing::instrument(skip(self))]
@@ -73,16 +75,17 @@ impl TeamsBotClient {
         method: Method,
         base_url: Option<&str>,
         url: &str,
-    ) -> RequestBuilder {
+    ) -> Result<RequestBuilder> {
         let mut token = self.token.lock().await;
 
         match *token {
-            Some(ref t) if !t.is_valid() => *token = Some(self.fetch_token().await),
-            None => *token = Some(self.fetch_token().await),
+            Some(ref t) if !t.is_valid() => *token = Some(self.fetch_token().await?),
+            None => *token = Some(self.fetch_token().await?),
             _ => (),
         }
 
-        self.client
+        let request = self
+            .client
             .request(
                 method,
                 format!(
@@ -92,7 +95,9 @@ impl TeamsBotClient {
                         .unwrap_or("https://smba.trafficmanager.net/teams")
                 ),
             )
-            .bearer_auth(&token.as_ref().unwrap().access_token)
+            .bearer_auth(&token.as_ref().unwrap().access_token);
+
+        Ok(request)
     }
 
     /// Creates a new conversation.
@@ -101,19 +106,18 @@ impl TeamsBotClient {
         &self,
         base_url: Option<&str>,
         body: &ConversationParameters,
-    ) -> ConversationResourceResponse {
+    ) -> Result<ConversationResourceResponse> {
         let result = self
             .create_request(Method::POST, base_url, "/v3/conversations")
-            .await
+            .await?
             .json(body)
             .send()
-            .await
-            .expect("Failed to send request");
+            .await?;
 
-        assert!(result.status().is_success());
-
-        let json: serde_json::Value = result.json().await.expect("Failed to deserialize response");
-        serde_json::from_value(json).unwrap()
+        match result.status().is_success() {
+            false => Err(Error::Teams(result.json().await?)),
+            true => Ok(result.json().await?),
+        }
     }
 
     /// Sends an activity (message) to the specified conversation. The activity will be appended to the end of the conversation according to the timestamp or semantics of the channel. To reply to a specific message within the conversation, use Reply to Activity instead.
@@ -123,23 +127,22 @@ impl TeamsBotClient {
         base_url: Option<&str>,
         conversation_id: &str,
         body: &Activity,
-    ) -> ResourceResponse {
+    ) -> Result<ResourceResponse> {
         let result = self
             .create_request(
                 Method::POST,
                 base_url,
                 &format!("/v3/conversations/{conversation_id}/activities"),
             )
-            .await
+            .await?
             .json(body)
             .send()
-            .await
-            .expect("Failed to send request");
+            .await?;
 
-        assert!(result.status().is_success());
-
-        let json: serde_json::Value = result.json().await.expect("Failed to deserialize response");
-        serde_json::from_value(json).unwrap()
+        match result.status().is_success() {
+            false => Err(Error::Teams(result.json().await?)),
+            true => Ok(result.json().await?),
+        }
     }
 
     /// Some channels allow you to edit an existing activity to reflect the new state of a bot conversation. For example, you might remove buttons from a message in the conversation after the user has clicked one of the buttons. If successful, this operation updates the specified activity within the specified conversation.
@@ -150,23 +153,21 @@ impl TeamsBotClient {
         conversation_id: &str,
         activity_id: &str,
         body: &Activity,
-    ) -> ResourceResponse {
+    ) -> Result<ResourceResponse> {
         let result = self
             .create_request(
                 Method::PUT,
                 base_url,
                 &format!("/v3/conversations/{conversation_id}/activities/{activity_id}"),
             )
-            .await
+            .await?
             .json(body)
             .send()
-            .await
-            .expect("Failed to send request");
+            .await?;
 
-        // assert!(result.status().is_success());
-
-        let json: serde_json::Value = result.json().await.expect("Failed to deserialize response");
-        info!("{}", json);
-        serde_json::from_value(json).unwrap()
+        match result.status().is_success() {
+            false => Err(Error::Teams(result.json().await?)),
+            true => Ok(result.json().await?),
+        }
     }
 }
