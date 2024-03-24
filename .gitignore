@@ -18,9 +18,7 @@ target
 # Manifest
 manifest/*
 
-# Exec for AZ Func
-executable
-
-#Other
+# Other
 *.db
 .env
+meet-a-bot

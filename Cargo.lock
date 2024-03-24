@@ -1155,7 +1155,6 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
- "teams_api",
  "thiserror",
  "tokio",
  "tracing",
@@ -2216,19 +2215,6 @@ checksum = "a75fb188eb626b924683e3b95e3a48e63551fcfb51949de2f06a9d91dbee93c9"
 dependencies = [
  "core-foundation-sys",
  "libc",
-]
-
-[[package]]
-name = "teams_api"
-version = "0.1.0"
-dependencies = [
- "reqwest",
- "rstest",
- "serde",
- "serde_json",
- "thiserror",
- "tokio",
- "tracing",
 ]
 
 [[package]]
