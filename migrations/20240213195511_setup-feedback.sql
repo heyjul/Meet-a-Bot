@@ -8,6 +8,7 @@ CREATE TABLE user (
 CREATE TABLE feedback (
     id TEXT NOT NULL, -- card id from teams
     owner_id TEXT NOT NULL,
+    conversation_name TEXT NOT NULL,
     report_id TEXT,
     CONSTRAINT 'PK_FEEDBACK_ID' PRIMARY KEY (id),
     CONSTRAINT 'FK_FEEDBACK_OWNER_ID_USER_ID' FOREIGN KEY (owner_id) REFERENCES user(id)

@@ -13,6 +13,7 @@ use crate::{
 #[derive(Debug, PartialEq)]
 pub enum Commands {
     Feedback,
+    Help,
 }
 
 impl TryFrom<&str> for Commands {
@@ -21,6 +22,7 @@ impl TryFrom<&str> for Commands {
     fn try_from(value: &str) -> Result<Commands> {
         match value.trim() {
             "feedback" => Ok(Self::Feedback),
+            "help" => Ok(Self::Help),
             _ => Err(Error::UnknownCommand(value.to_owned())),
         }
     }
@@ -44,20 +46,17 @@ pub async fn send_adaptive_card(
     client: &TeamsClient,
     activity: &Activity,
     adaptive_card: &serde_json::Value,
-) -> Result<Option<ResourceResponse>> {
+) -> Result<ResourceResponse> {
     let (base_url, mut response) = activity.create_response();
     response.r#type = Type::Message;
     response.attachments = Some(vec![Attachment {
         content: Some(adaptive_card.to_owned()),
         content_type: Some(ContentType::Adaptive),
-        content_url: None,
-        name: None,
-        thumbnail_url: None,
     }]);
 
-    let _ = client
+    let result = client
         .send_to_conversation(base_url, &activity.conversation.id, &response)
         .await?;
 
-    Ok(None)
+    Ok(result)
 }

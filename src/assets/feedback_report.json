@@ -1,0 +1,75 @@
+{
+    "type": "AdaptiveCard",
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "version": "1.5",
+    "body": [
+        {
+            "type": "TextBlock",
+            "text": "Rapport de feedback",
+            "wrap": true,
+            "style": "heading"
+        },
+        {
+            "type": "TextBlock",
+            "text": "{name}",
+            "wrap": true,
+            "isSubtle": true
+        },
+        {
+            "type": "ColumnSet",
+            "separator": true,
+            "spacing": "ExtraLarge",
+            "columns": [
+                {
+                    "type": "Column",
+                    "selectAction": {
+                        "type": "Action.ToggleVisibility",
+                        "targetElements": [
+                            "comments",
+                            "showComments",
+                            "hideComments"
+                        ]
+                    },
+                    "verticalContentAlignment": "Center",
+                    "items": [
+                        {
+                            "type": "TextBlock",
+                            "id": "showComments",
+                            "color": "Accent",
+                            "text": "Afficher les commentaires ({comments_count})",
+                            "wrap": true
+                        },
+                        {
+                            "type": "TextBlock",
+                            "id": "hideComments",
+                            "color": "Accent",
+                            "text": "Masquer les commentaires",
+                            "wrap": true,
+                            "isVisible": false
+                        }
+                    ],
+                    "width": 1
+                }
+            ]
+        },
+        {
+            "type": "Container",
+            "isVisible": false,
+            "id": "comments",
+            "items": []
+        },
+        {
+            "type": "TextBlock",
+            "text": "Moyenne ({feedbacks_count})",
+            "wrap": true,
+            "style": "heading",
+            "separator": true,
+            "spacing": "ExtraLarge"
+        },
+        {
+            "type": "ColumnSet",
+            "horizontalAlignment": "Center",
+            "columns": []
+        }
+    ]
+}

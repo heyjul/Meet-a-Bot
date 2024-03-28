@@ -1,5 +1,6 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use thiserror::Error;
+use tracing::warn;
 
 pub(crate) type Result<T> = std::result::Result<T, Error>;
 
@@ -19,10 +20,14 @@ pub enum Error {
 
     #[error("The value `{0}` is missing.")]
     MissingValue(&'static str),
+
+    #[error(transparent)]
+    Serde(#[from] serde_json::Error),
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
+        warn!("Error received : {:?}", self);
         (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", self)).into_response()
     }
 }

@@ -1,8 +1,8 @@
-use serde::Serialize;
-use sqlx::{pool::PoolConnection, Sqlite, SqlitePool};
+use sqlx::{Acquire, Sqlite, SqlitePool, Transaction};
+use tracing::warn;
 
 use crate::{
-    database::queries::{self, feedback_query::FeedbackMeta},
+    database::queries::{self, feedback_query::FeedbackMetadata},
     error::{Error, Result},
     models::{
         self,
@@ -18,6 +18,9 @@ use super::send_adaptive_card;
 const EMPTY_STAR: &str = include_str!("../assets/empty_star");
 const HALF_STAR: &str = include_str!("../assets/half_star");
 const FULL_STAR: &str = include_str!("../assets/full_star");
+const FEEDBACK_CARD: &str = include_str!("../assets/feedback_card.json");
+const FEEDBACK_REPORT: &str = include_str!("../assets/feedback_report.json");
+const FALLBACK_NAME: &str = "Unknown";
 
 pub async fn send_feedback_card(
     teams_client: &TeamsClient,
@@ -25,155 +28,32 @@ pub async fn send_feedback_card(
     pool: &SqlitePool,
     activity: &Activity,
 ) -> Result<()> {
-    let chat = graph_client.get_chat(&activity.conversation.id).await?;
+    let name = activity.from.name.as_deref().unwrap_or(FALLBACK_NAME);
 
     let response = send_adaptive_card(
         teams_client,
         activity,
-        &serde_json::json!({
-            "type": "AdaptiveCard",
-            "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-            "version": "1.5",
-            "body": [
-                {
-                    "type": "TextBlock",
-                    "text": "Demande de feedback",
-                    "wrap": true,
-                    "style": "heading"
-                },
-                {
-                    "type": "TextBlock",
-                    "text": chat.topic,
-                    "wrap": true,
-                    "style": "heading",
-                    "isSubtle": true
-                },
-                {
-                    "type": "Input.Text",
-                    "placeholder": "Ajouter un commentaire ici ...",
-                    "id": "comment",
-                    "isMultiline": true,
-                    "separator": true,
-                    "spacing": "extraLarge"
-                },
-                {
-                    "type": "ColumnSet",
-                    "horizontalAlignment": "center",
-                    "spacing": "medium",
-                    "columns": [
-                        {
-                            "type": "Column",
-                            "items": [
-                                {
-                                    "type": "Image",
-                                    "url": FULL_STAR,
-                                    "id": "star1",
-                                    "size": "Small",
-                                    "horizontalAlignment": "center",
-                                    "selectAction": {
-                                        "type": "Action.Submit",
-                                        "data": {
-                                            "rating": 1
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                       {
-                            "type": "Column",
-                            "items": [
-                                {
-                                    "type": "Image",
-                                    "url": FULL_STAR,
-                                    "id": "star2",
-                                    "size": "Small",
-                                    "horizontalAlignment": "center",
-                                    "selectAction": {
-                                        "type": "Action.Submit",
-                                        "data": {
-                                            "rating": 2
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            "type": "Column",
-                            "items": [
-                                {
-                                    "type": "Image",
-                                    "url": FULL_STAR,
-                                    "id": "star3",
-                                    "size": "Small",
-                                    "horizontalAlignment": "center",
-                                    "selectAction": {
-                                        "type": "Action.Submit",
-                                        "data": {
-                                            "rating": 3
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            "type": "Column",
-                            "items": [
-                                {
-                                    "type": "Image",
-                                    "url": FULL_STAR,
-                                    "id": "star4",
-                                    "size": "Small",
-                                    "horizontalAlignment": "center",
-                                    "selectAction": {
-                                        "type": "Action.Submit",
-                                        "data": {
-                                            "rating": 4
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            "type": "Column",
-                            "items": [
-                                {
-                                    "type": "Image",
-                                    "url": FULL_STAR,
-                                    "id": "star5",
-                                    "size": "Small",
-                                    "horizontalAlignment": "center",
-                                    "selectAction": {
-                                        "type": "Action.Submit",
-                                        "data": {
-                                            "rating": 5
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        }),
+        &serde_json::from_str(&FEEDBACK_CARD.replace("{name}", name))?,
     )
     .await?;
 
-    let card_id = response
-        .as_ref()
-        .and_then(|x| x.id.as_ref())
-        .ok_or(Error::MissingValue("id"))?;
+    let user_id = &activity.from.id;
+    let chat = graph_client.get_chat(&activity.conversation.id).await;
+    let chat_name = match chat {
+        Ok(ref chat) => &chat.topic,
+        Err(e) => {
+            warn!("An error occured while fetching the chat name : {:?}", e);
+            FALLBACK_NAME
+        }
+    };
 
     let mut conn = pool.acquire().await?;
+    let mut tx = conn.begin().await?;
 
-    let owner_id = &activity.from.id;
-    let name = &activity
-        .from
-        .name
-        .as_ref()
-        .ok_or(Error::MissingValue("name"))?;
+    queries::user_query::create_user(user_id, name, &mut *tx).await?;
+    queries::feedback_query::create_feedback(user_id, &response.id, &chat_name, &mut *tx).await?;
 
-    queries::user_query::create_user(owner_id, name, &mut conn).await?;
-    queries::feedback_query::create_feedback(owner_id, card_id, &mut conn).await?;
+    tx.commit().await?;
 
     Ok(())
 }
@@ -194,12 +74,13 @@ pub async fn handle_feedback_entry(
     let (base_url, mut response) = activity.create_response();
 
     let mut conn = pool.acquire().await?;
+    let mut tx = conn.begin().await?;
 
-    let FeedbackMeta {
+    let FeedbackMetadata {
         conversation_id,
         owner_id,
         report_id,
-    } = queries::feedback_query::get_feedback_by_id(card_id, &mut conn).await?;
+    } = queries::feedback_query::get_feedback_by_id(card_id, &mut *tx).await?;
 
     let conversation_id = get_or_create_conversation(
         client,
@@ -207,7 +88,7 @@ pub async fn handle_feedback_entry(
         conversation_id,
         activity,
         &owner_id,
-        &mut conn,
+        &mut tx,
     )
     .await?;
 
@@ -216,22 +97,19 @@ pub async fn handle_feedback_entry(
         user_id,
         feedback.rating,
         feedback.comment.as_deref(),
-        &mut conn,
+        &mut *tx,
     )
     .await?;
 
-    let feedbacks = queries::feedback_query::get_feedbacks_by_id(card_id, &mut conn).await?;
+    let feedbacks = queries::feedback_query::get_feedbacks_by_id(card_id, &mut *tx).await?;
 
-    let content = get_feedback_report_adaptive_card(feedbacks);
+    let content = get_feedback_report_adaptive_card(&feedbacks)?;
 
     response.recipient = ChannelAccount::default();
     response.r#type = Type::Message;
     response.attachments = Some(vec![Attachment {
         content: Some(content),
         content_type: Some(ContentType::Adaptive),
-        content_url: None,
-        name: None,
-        thumbnail_url: None,
     }]);
 
     match report_id {
@@ -245,74 +123,77 @@ pub async fn handle_feedback_entry(
                 .send_to_conversation(base_url, &conversation_id, &response)
                 .await?;
 
-            queries::feedback_query::add_report(
-                card_id,
-                &response.id.ok_or(Error::MissingValue("id"))?,
-                &mut conn,
-            )
-            .await?;
+            queries::feedback_query::add_report(card_id, &response.id, &mut *tx).await?;
         }
     }
+
+    tx.commit().await?;
 
     Ok(())
 }
 
 fn get_feedback_report_adaptive_card(
-    feedbacks: Vec<queries::feedback_query::Feedback>,
-) -> serde_json::Value {
-    let mut comments: Vec<_> = feedbacks
+    feedbacks: &[queries::feedback_query::Feedback],
+) -> Result<serde_json::Value> {
+    let comments: Vec<_> = feedbacks
         .iter()
-        .filter_map(|x| {
-            x.comment.as_ref().map(|comment| {
-                AdaptiveCardElements::TextBlock(TextBlock {
-                    r#type: "TextBlock".to_owned(),
-                    text: comment.clone(),
-                    wrap: true,
-                    separator: true,
+        .filter_map(|feedback| {
+            feedback.comment.as_ref().map(|x| {
+                serde_json::json!({
+                    "type": "TextBlock",
+                    "text": x,
+                    "wrap": true
                 })
             })
         })
         .collect();
 
-    let mut average =
-        feedbacks.iter().map(|x| x.rating).sum::<i64>() as f32 / feedbacks.len() as f32;
+    let average = feedbacks.iter().map(|x| x.rating).sum::<i64>() as f32 / feedbacks.len() as f32;
 
-    let stars: Vec<_> = (0..5)
-        .map(move |_| {
+    let (_, stars) = (0..5).fold(
+        (average, Vec::with_capacity(5)),
+        |(average, mut stars), _| {
             let star = match average {
                 x if x >= 1.0 => FULL_STAR,
                 x if x >= 0.5 => HALF_STAR,
                 _ => EMPTY_STAR,
             };
 
-            average -= 1.0;
+            stars.push(serde_json::json!({
+                "type": "Column",
+                "width": "stretch",
+                "items": [
+                    {
+                        "type": "Image",
+                        "url": star,
+                        "size": "Small",
+                        "horizontalAlignment": "Center"
+                    }
+                ]
+            }));
 
-            Column {
-                r#type: "Column".to_owned(),
-                width: "stretch".to_owned(),
-                items: vec![AdaptiveCardElements::Image(Image {
-                    r#type: "Image".to_owned(),
-                    url: star.to_owned(),
-                    width: "32px".to_owned(),
-                    horizontal_alignment: "Center".to_owned(),
-                })],
-            }
-        })
-        .collect();
+            (average - 1.0, stars)
+        },
+    );
 
-    comments.push(AdaptiveCardElements::ColumnSet(ColumnSet {
-        r#type: "ColumnSet".to_owned(),
-        columns: stars,
-        separator: true,
-        spacing: "ExtraLarge".to_owned(),
-    }));
+    let feedbacks_count = feedbacks.len();
+    let comments_count = comments.len();
+    let name = &feedbacks
+        .first()
+        .expect("Feedbacks should not be empty")
+        .conversation_name;
 
-    serde_json::json!({
-        "type": "AdaptiveCard",
-        "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-        "version": "1.5",
-        "body": comments
-    })
+    let mut feedback_report: serde_json::Value = serde_json::from_str(
+        &FEEDBACK_REPORT
+            .replace("{name}", name)
+            .replace("{comments_count}", &comments_count.to_string())
+            .replace("{feedbacks_count}", &feedbacks_count.to_string()),
+    )?;
+
+    feedback_report["body"][3]["items"] = serde_json::Value::Array(comments);
+    feedback_report["body"][5]["columns"] = serde_json::Value::Array(stars);
+
+    Ok(feedback_report)
 }
 
 async fn get_or_create_conversation(
@@ -321,13 +202,13 @@ async fn get_or_create_conversation(
     conversation_id: Option<String>,
     activity: &Activity,
     user_id: &str,
-    conn: &mut PoolConnection<Sqlite>,
+    tx: &mut Transaction<'_, Sqlite>,
 ) -> Result<String> {
     match conversation_id {
         Some(conversation_id) => Ok(conversation_id),
         None => {
             let conversation_id = create_conversation(client, base_url, activity, user_id).await?;
-            queries::user_query::update_conversation(user_id, &conversation_id, conn).await?;
+            queries::user_query::update_conversation(user_id, &conversation_id, &mut **tx).await?;
 
             Ok(conversation_id)
         }
@@ -345,72 +226,14 @@ async fn create_conversation(
             base_url,
             &ConversationParameters {
                 bot: activity.recipient.clone(),
-                is_group: Some(false),
                 members: Some(vec![ChannelAccount {
                     id: user_id.to_owned(),
                     ..Default::default()
                 }]),
                 tenant_id: activity.conversation.tenant_id.clone(),
-                ..Default::default()
             },
         )
         .await?;
 
-    let id = conversation_response.id.ok_or(Error::MissingValue("id"))?;
-
-    Ok(id)
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct AdaptiveCard {
-    #[serde(rename = "type")]
-    pub r#type: String,
-    pub schema: String,
-    pub version: String,
-    pub body: Vec<AdaptiveCardElements>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-#[serde(untagged)]
-pub enum AdaptiveCardElements {
-    TextBlock(TextBlock),
-    ColumnSet(ColumnSet),
-    Column(Column),
-    Image(Image),
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct TextBlock {
-    #[serde(rename = "type")]
-    pub r#type: String,
-    pub text: String,
-    pub wrap: bool,
-    pub separator: bool,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct ColumnSet {
-    #[serde(rename = "type")]
-    pub r#type: String,
-    pub columns: Vec<Column>,
-    pub separator: bool,
-    pub spacing: String,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct Column {
-    #[serde(rename = "type")]
-    pub r#type: String,
-    pub width: String,
-    pub items: Vec<AdaptiveCardElements>,
-}
-
-#[derive(Clone, Debug, Serialize)]
-pub struct Image {
-    #[serde(rename = "type")]
-    pub r#type: String,
-    pub url: String,
-    pub width: String,
-    #[serde(rename = "horizontalAlignment")]
-    pub horizontal_alignment: String,
+    Ok(conversation_response.id)
 }

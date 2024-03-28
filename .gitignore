@@ -19,6 +19,6 @@ target
 manifest/*
 
 # Other
-*.db
+*.db*
 .env
 meet-a-bot

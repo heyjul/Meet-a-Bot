@@ -4,5 +4,5 @@ use serde::Deserialize;
 #[derive(Clone, Debug, Deserialize)]
 pub struct ResourceResponse {
     /// ID that uniquely identifies the resource.
-    pub id: Option<String>,
+    pub id: String,
 }

@@ -22,7 +22,6 @@ pub async fn handle(
     }): State<AppState>,
     Json(activity): Json<Activity>,
 ) -> Result<impl IntoResponse> {
-    // tracing::info!("{}", serde_json::to_string_pretty(&activity).unwrap());
     match activity.r#type {
         Type::ConversationUpdate => send_greetings(&teams_client, &activity).await?,
         Type::Message => {
@@ -30,6 +29,14 @@ pub async fn handle(
                 match parse_command(&activity) {
                     Some(Commands::Feedback) => {
                         send_feedback_card(&teams_client, &graph_client, &pool, &activity).await?
+                    }
+                    Some(Commands::Help) => {
+                        send_message(
+                            &teams_client,
+                            &activity,
+                            "Franchement ? De l'aide ? Gros y a que 2 commandes ...",
+                        )
+                        .await?
                     }
                     None => {
                         send_message(&teams_client, &activity, "Failed to parse the command.")

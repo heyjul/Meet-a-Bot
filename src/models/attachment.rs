@@ -10,15 +10,6 @@ pub struct Attachment {
     /// The media type of the content in the attachment.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub content_type: Option<ContentType>,
-    /// URL for the content of the attachment. For example, if the attachment is an image, you can set contentUrl to the URL that represents the location of the image. Supported protocols are: HTTP, HTTPS, File, and Data.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content_url: Option<String>,
-    /// Name of the attachment.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub name: Option<String>,
-    /// URL to a thumbnail image that the channel can use if it supports using an alternative, smaller form of content or contentUrl. For example, if you set contentType to application/word and set contentUrl to the location of the Word document, you might include a thumbnail image that represents the document. The channel could display the thumbnail image instead of the document. When the user clicks the image, the channel would open the document.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub thumbnail_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
