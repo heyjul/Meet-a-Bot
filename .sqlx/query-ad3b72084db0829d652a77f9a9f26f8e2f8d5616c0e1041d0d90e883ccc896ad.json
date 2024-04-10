@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT conversation_id FROM user WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "conversation_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "ad3b72084db0829d652a77f9a9f26f8e2f8d5616c0e1041d0d90e883ccc896ad"
+}

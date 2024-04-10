@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO feedback (id, owner_id, conversation_name) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "3b84ec2dc3bfd8965f1a3af06f834df07e1053975b6cc9374b9898d89234616d"
+}

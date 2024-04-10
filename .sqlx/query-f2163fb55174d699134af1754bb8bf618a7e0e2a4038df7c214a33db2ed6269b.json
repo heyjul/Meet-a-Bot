@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT \n            user.conversation_id,\n            feedback.owner_id,\n            feedback.report_id \n        FROM\n            feedback \n            JOIN user ON feedback.owner_id = user.id\n        WHERE \n            feedback.id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "conversation_id",
+        "ordinal": 0,
+        "type_info": "Text"
+      },
+      {
+        "name": "owner_id",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "report_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "f2163fb55174d699134af1754bb8bf618a7e0e2a4038df7c214a33db2ed6269b"
+}

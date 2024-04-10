@@ -6,7 +6,8 @@ use meet_a_bot::{
     services::{GraphClient, TeamsClient},
     state::AppState,
 };
-use sqlx::SqlitePool;
+use sqlx::{migrate::MigrateDatabase, Sqlite, SqlitePool};
+use tracing::info;
 
 #[tokio::main]
 async fn main() {
@@ -30,13 +31,29 @@ async fn main() {
     let client_id = env::var("TEAMS_CLIENT_ID").expect("Missing TEAMS_CLIENT_ID");
     let client_secret = env::var("TEAMS_CLIENT_SECRET").expect("Missing TEAMS_CLIENT_SECRET");
     let client_tenant = env::var("TEAMS_TENANT_ID").expect("Missing TEAMS_TENANT_ID");
+    let db_url = env::var("DATABASE_URL").expect("Missing DATABASE_URL");
 
     let client = reqwest::Client::new();
     let teams_client = TeamsClient::new(client.clone(), &client_id, &client_secret);
     let graph_client = GraphClient::new(client, &client_id, &client_secret, &client_tenant);
 
-    let pool = SqlitePool::connect_lazy(&env::var("DATABASE_URL").expect("Missing DATABASE_URL"))
-        .expect("Failed to connect to the database");
+    if !Sqlite::database_exists(&db_url).await.unwrap_or(false) {
+        info!("Creating database {}", &db_url);
+
+        match Sqlite::create_database(&db_url).await {
+            Ok(_) => info!("Create db success"),
+            Err(error) => panic!("error: {}", error),
+        }
+    } else {
+        info!("Database already exists");
+    }
+
+    let pool = SqlitePool::connect_lazy(&db_url).expect("Failed to connect to the database");
+
+    sqlx::migrate!()
+        .run(&pool)
+        .await
+        .expect("Unable to apply migration");
 
     let state = AppState {
         teams_client,
