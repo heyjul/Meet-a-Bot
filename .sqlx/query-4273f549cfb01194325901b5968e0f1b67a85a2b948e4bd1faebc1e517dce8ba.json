@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n            \"user\".conversation_id,\n            feedback.owner_id,\n            feedback.report_id \n        FROM\n            feedback \n            JOIN \"user\" ON feedback.owner_id = \"user\".id\n        WHERE \n            feedback.id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "conversation_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "owner_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "report_id",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "4273f549cfb01194325901b5968e0f1b67a85a2b948e4bd1faebc1e517dce8ba"
+}

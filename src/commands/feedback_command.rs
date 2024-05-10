@@ -1,4 +1,4 @@
-use sqlx::{Acquire, Sqlite, SqlitePool, Transaction};
+use sqlx::{Acquire, PgPool, Postgres, Transaction};
 use tracing::warn;
 
 use crate::{
@@ -25,7 +25,7 @@ const FALLBACK_NAME: &str = "Unknown";
 pub async fn send_feedback_card(
     teams_client: &TeamsClient,
     graph_client: &GraphClient,
-    pool: &SqlitePool,
+    pool: &PgPool,
     activity: &Activity,
 ) -> Result<()> {
     let name = activity.from.name.as_deref().unwrap_or(FALLBACK_NAME);
@@ -60,7 +60,7 @@ pub async fn send_feedback_card(
 
 pub async fn handle_feedback_entry(
     client: &TeamsClient,
-    pool: &SqlitePool,
+    pool: &PgPool,
     activity: &Activity,
     feedback: &models::action::Feedback,
 ) -> Result<()> {
@@ -202,7 +202,7 @@ async fn get_or_create_conversation(
     conversation_id: Option<String>,
     activity: &Activity,
     user_id: &str,
-    tx: &mut Transaction<'_, Sqlite>,
+    tx: &mut Transaction<'_, Postgres>,
 ) -> Result<String> {
     match conversation_id {
         Some(conversation_id) => Ok(conversation_id),

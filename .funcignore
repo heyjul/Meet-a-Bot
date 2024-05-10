@@ -6,7 +6,15 @@ __queuestorage__
 local.settings.json
 test
 
+# rust
 target
 .cargo
+.sqlx
+Cargo.*
+src
+
+# other
 manifest
+.env
 LICENSE
+*.db*

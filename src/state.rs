@@ -1,4 +1,4 @@
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 use crate::services::{graph_client::GraphClient, teams_client::TeamsClient};
 
@@ -6,5 +6,5 @@ use crate::services::{graph_client::GraphClient, teams_client::TeamsClient};
 pub struct AppState {
     pub teams_client: TeamsClient,
     pub graph_client: GraphClient,
-    pub pool: SqlitePool,
+    pub pool: PgPool,
 }

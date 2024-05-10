@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO \"user\" (id, name) SELECT $1, $2 WHERE NOT EXISTS (SELECT * FROM \"user\" WHERE id = $1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "21862cc61fe2dfb5dab7e66d194f0adc355a13ed29edb191b1c406010abf346e"
+}

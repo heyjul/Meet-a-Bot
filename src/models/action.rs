@@ -9,5 +9,5 @@ pub enum Action {
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Feedback {
     pub comment: Option<String>,
-    pub rating: i64,
+    pub rating: i32,
 }

@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT \n            conversation_name, \n            rating, \n            comment \n        FROM \n            feedback f\n            JOIN feedback_entry fe ON f.id = fe.feedback_id\n        WHERE \n            feedback_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "conversation_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "rating",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 2,
+        "name": "comment",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "d52aeecf497c8a4b3b986b8b04cf3ecaae1299f8f43f245970c24893264f5d29"
+}

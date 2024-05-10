@@ -6,13 +6,11 @@ use meet_a_bot::{
     services::{GraphClient, TeamsClient},
     state::AppState,
 };
-use sqlx::{migrate::MigrateDatabase, Sqlite, SqlitePool};
-use tracing::info;
+use sqlx::PgPool;
 
 #[tokio::main]
 async fn main() {
     let subscriber = tracing_subscriber::fmt()
-        .pretty()
         // .with_span_events(tracing_subscriber::fmt::format::FmtSpan::NEW)
         .finish();
 
@@ -37,18 +35,7 @@ async fn main() {
     let teams_client = TeamsClient::new(client.clone(), &client_id, &client_secret);
     let graph_client = GraphClient::new(client, &client_id, &client_secret, &client_tenant);
 
-    if !Sqlite::database_exists(&db_url).await.unwrap_or(false) {
-        info!("Creating database {}", &db_url);
-
-        match Sqlite::create_database(&db_url).await {
-            Ok(_) => info!("Create db success"),
-            Err(error) => panic!("error: {}", error),
-        }
-    } else {
-        info!("Database already exists");
-    }
-
-    let pool = SqlitePool::connect_lazy(&db_url).expect("Failed to connect to the database");
+    let pool = PgPool::connect_lazy(&db_url).expect("Failed to connect to the database");
 
     sqlx::migrate!()
         .run(&pool)
